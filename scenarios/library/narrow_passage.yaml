@@ -1,0 +1,13 @@
+name: narrow_passage
+robot: ur5e
+# Two tall walls leaving a narrow vertical slot. Stresses sampling-based planners
+# (narrow-passage problem) and rewards optimization-based planners like cuRobo.
+world:
+  obstacles:
+    - {type: box, name: ground,    size: [2.0, 2.0, 0.04], pose: {xyz: [0.0, 0.0, -0.03]}}
+    - {type: box, name: wall_left, size: [0.08, 0.5, 0.9], pose: {xyz: [0.45, 0.28, 0.45]}}
+    - {type: box, name: wall_right,size: [0.08, 0.5, 0.9], pose: {xyz: [0.45, -0.28, 0.45]}}
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint

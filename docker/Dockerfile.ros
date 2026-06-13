@@ -1,0 +1,43 @@
+# ROS 2 Humble + MoveIt 2 + UR5e + moveit_py + the benchmark harness.
+# CPU-only is fine (planning runs on CPU). On Arch this is the ONLY supported way to get
+# ROS 2; the host never needs ROS installed.
+#
+# Build:  docker compose -f docker/docker-compose.yml build ros
+FROM moveit/moveit2:humble-release
+
+SHELL ["/bin/bash", "-lc"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- ROS packages: UR driver + UR MoveIt config + moveit_py + benchmarks + warehouse ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ros-humble-ur \
+      ros-humble-ur-robot-driver \
+      ros-humble-ur-moveit-config \
+      ros-humble-ur-description \
+      ros-humble-ur-simulation-gz \
+      ros-humble-moveit-py \
+      ros-humble-moveit-ros-benchmarks \
+      ros-humble-moveit-ros-warehouse \
+      ros-humble-warehouse-ros-mongo \
+      ros-humble-pinocchio \
+      python3-pip git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# --- Python harness (offline core: scenarios, metrics, analysis, MoveIt adapter) ---
+COPY benchmark /workspace/benchmark
+RUN pip install --no-cache-dir -e /workspace/benchmark
+
+# --- Build the ROS 2 workspace (mb_bringup, mb_moveit_benchmarks) ---
+COPY ros2_ws /workspace/ros2_ws
+RUN source /opt/ros/humble/setup.bash \
+    && cd /workspace/ros2_ws \
+    && rosdep update || true \
+    && rosdep install --from-paths src --ignore-src -r -y || true \
+    && colcon build --symlink-install
+
+COPY docker/entrypoints/ros.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

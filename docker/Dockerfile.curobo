@@ -1,0 +1,40 @@
+# cuRobo (GPU) + the benchmark harness. The non-MoveIt planner lives here (task 4).
+#
+# RISKIEST artifact in the project and the one you CANNOT test without a GPU. Strategy:
+# pin everything and lean on cuRobo's documented install. The host GPU is an 8 GB RTX
+# 3060 Ti (Ampere, sm_86) -- CUDA 12.1 + a matching PyTorch is a known-good combo.
+#
+# Build:  docker compose -f docker/docker-compose.yml build curobo
+# Requires nvidia-container-toolkit on the host (see docs/00) to actually run.
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+
+SHELL ["/bin/bash", "-lc"]
+ENV DEBIAN_FRONTEND=noninteractive
+# Build CUDA kernels for Ampere (RTX 3060 Ti). Add more archs if you change GPUs.
+ENV TORCH_CUDA_ARCH_LIST="8.6+PTX"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3 python3-pip python3-dev git build-essential ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- PyTorch matching CUDA 12.1 (pin the version you validate) ---
+RUN pip install --no-cache-dir torch==2.2.2 torchvision==0.17.2 \
+      --index-url https://download.pytorch.org/whl/cu121
+
+# --- cuRobo from source, pinned. Verify the tag against https://github.com/NVlabs/curobo/releases ---
+ARG CUROBO_REF=v0.7.4
+RUN git clone https://github.com/NVlabs/curobo.git /opt/curobo \
+    && cd /opt/curobo \
+    && git checkout ${CUROBO_REF} \
+    && pip install --no-cache-dir -e . --no-build-isolation
+
+WORKDIR /workspace
+
+# --- The harness (offline core + cuRobo adapter). Same package as the ros image. ---
+COPY benchmark /workspace/benchmark
+RUN pip install --no-cache-dir -e /workspace/benchmark
+
+COPY docker/entrypoints/curobo.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

@@ -1,0 +1,32 @@
+# Reference catalogue of planners + suggested benchmark settings. The run scripts pass
+# these names to `mb-benchmark run --planners ...` and to Pipeline A's benchmark.yaml.
+# (This file is documentation/aggregation; the registry in mb_benchmark.adapters is the
+# source of truth for what is actually runnable.)
+
+defaults:
+  runs: 10          # repetitions per query (raise to 25-50 for a real study)
+  timeout: 10.0     # seconds per planning attempt
+
+# Pipeline B (custom harness) -- cross-framework, identical metrics.
+harness:
+  moveit:           # require the `ros` container
+    - moveit:RRTConnect
+    - moveit:RRT
+    - moveit:RRTstar
+    - moveit:PRM
+    - moveit:BITstar
+    - moveit:EST
+    - moveit:KPIECE
+  curobo:           # requires the `curobo` container (GPU)
+    - curobo
+  baselines:        # pure Python, run anywhere
+    - straightline
+  synthetic:        # offline demo only (fabricated data)
+    - synthetic:rrtconnect
+    - synthetic:bitstar
+    - synthetic:curobo
+
+# Pipeline A (moveit_ros_benchmarks) -- MoveIt-internal, Planner Arena.
+# Mirrors ros2_ws/src/mb_moveit_benchmarks/config/benchmark.yaml.
+moveit_ros_benchmarks:
+  ompl: [RRTConnect, RRT, RRTstar, PRM, PRMstar, BiTRRT, BITstar, EST, KPIECE, LBKPIECE, SBL]

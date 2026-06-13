@@ -1,0 +1,60 @@
+# moveit_ros_benchmarks configuration (Pipeline A).
+#
+# This is consumed by the `moveit_run_benchmark` node. The scenes, start states and goal
+# constraints referenced here live in the MongoDB warehouse (service `mongo`), populated
+# by scripts/populate_warehouse.py from the SAME scenario library used by the custom
+# harness (scenarios/library/*.yaml) -- so both pipelines benchmark identical problems.
+#
+# IMPORTANT (later agents): the exact parameter names are defined by
+# moveit_ros_benchmarks/BenchmarkOptions.hpp for your installed MoveIt version. Verify
+# against `ros2 pkg prefix moveit_ros_benchmarks` examples (demo1.yaml). The structure
+# below matches the documented ROS 2 schema.
+
+benchmark_config:
+
+  warehouse:
+    host: "localhost"      # mongo runs with host networking (see docker-compose.yml)
+    port: 27017
+    scene_name: "ur5e_benchmark_scene"
+
+  parameters:
+    name: "ur5e_ompl_benchmark"
+    runs: 50               # repetitions per (planner, query) -- task 3 "multiple repetitions"
+    group: "ur_manipulator"
+    timeout: 10.0          # seconds per planning attempt
+    output_directory: "/results/moveit_benchmarks/"
+    queries: ".*"          # regex over query names stored in the warehouse
+    start_states: ".*"
+    goal_constraints: ".*"
+    # predefined_poses: []
+
+  planning_pipelines:
+    pipelines: ["ompl"]
+    # Each pipeline lists the planners to benchmark. These names must match the
+    # planner configs in ur_moveit_config/config/ompl_planning.yaml.
+    ompl:
+      name: "ompl"
+      planners:
+        - "RRTConnect"
+        - "RRT"
+        - "RRTstar"
+        - "PRM"
+        - "PRMstar"
+        - "BiTRRT"
+        - "BITstar"
+        - "EST"
+        - "KPIECE"
+        - "LBKPIECE"
+        - "SBL"
+
+    # To also benchmark optimization-based / industrial planners, add their pipelines and
+    # uncomment below (requires the pipelines to be installed & configured for UR):
+    # pilz_industrial_motion_planner:
+    #   name: "pilz_industrial_motion_planner"
+    #   planners: ["PTP", "LIN"]
+    # chomp:
+    #   name: "chomp"
+    #   planners: ["CHOMP"]
+    # stomp:
+    #   name: "stomp"
+    #   planners: ["STOMP"]

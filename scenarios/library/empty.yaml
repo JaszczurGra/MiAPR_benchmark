@@ -1,0 +1,10 @@
+name: empty
+robot: ur5e
+# Baseline scenario with no obstacles: isolates raw planner speed/quality. Clearance is
+# undefined (no obstacles) and every collision-free straight line succeeds.
+world:
+  obstacles: []
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint

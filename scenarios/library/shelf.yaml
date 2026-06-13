@@ -1,0 +1,16 @@
+name: shelf
+robot: ur5e
+# A two-level shelf in front of the robot: horizontal plates + side walls. Classic
+# pick-from-shelf reachability challenge.
+world:
+  obstacles:
+    - {type: box, name: ground,      size: [2.0, 2.0, 0.04], pose: {xyz: [0.0, 0.0, -0.03]}}
+    - {type: box, name: shelf_back,  size: [0.04, 0.8, 0.8], pose: {xyz: [0.6, 0.0, 0.4]}}
+    - {type: box, name: shelf_low,   size: [0.4, 0.8, 0.03], pose: {xyz: [0.45, 0.0, 0.25]}}
+    - {type: box, name: shelf_high,  size: [0.4, 0.8, 0.03], pose: {xyz: [0.45, 0.0, 0.55]}}
+    - {type: box, name: shelf_left,  size: [0.4, 0.03, 0.8], pose: {xyz: [0.45, 0.4, 0.4]}}
+    - {type: box, name: shelf_right, size: [0.4, 0.03, 0.8], pose: {xyz: [0.45, -0.4, 0.4]}}
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint

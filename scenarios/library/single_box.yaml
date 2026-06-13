@@ -1,0 +1,12 @@
+name: single_box
+robot: ur5e
+# One obstacle box in front of the robot plus a ground/table slab. Forces detours; the
+# straight-line baseline will often fail here, real planners should not.
+world:
+  obstacles:
+    - {type: box, name: ground, size: [2.0, 2.0, 0.04], pose: {xyz: [0.0, 0.0, -0.03]}}
+    - {type: box, name: wall,   size: [0.10, 0.6, 0.6], pose: {xyz: [0.45, 0.0, 0.35]}}
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint

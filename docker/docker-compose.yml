@@ -1,0 +1,58 @@
+# Orchestrates the three services. Run commands from the repo root.
+#
+#   docker compose -f docker/docker-compose.yml build
+#   docker compose -f docker/docker-compose.yml up -d mongo
+#   docker compose -f docker/docker-compose.yml run --rm ros    bash
+#   docker compose -f docker/docker-compose.yml run --rm curobo bash
+#
+# The repo is bind-mounted at /workspace in both compute services so edits on the host
+# are picked up live, and results land back on the host under ./results.
+
+services:
+  # ROS 2 + MoveIt + UR5e + moveit_py + harness (MoveIt adapter, Pipeline A). CPU.
+  ros:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ros
+    image: miapr/ros:humble
+    network_mode: host          # easiest DDS + reaches `mongo` via localhost-style
+    ipc: host
+    environment:
+      - ROS_DOMAIN_ID=0
+      - DISPLAY=${DISPLAY:-}     # for RViz; also run `xhost +local:` on the host
+    volumes:
+      - ../:/workspace
+      - ./entrypoints:/entrypoints:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+
+  # cuRobo (GPU) + harness (cuRobo adapter). Needs nvidia-container-toolkit on the host.
+  curobo:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.curobo
+    image: miapr/curobo:cu121
+    volumes:
+      - ../:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # MongoDB warehouse for Pipeline A (moveit_ros_benchmarks scenes/queries).
+  mongo:
+    image: mongo:6
+    network_mode: host          # exposes 27017 on localhost for the ros service
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

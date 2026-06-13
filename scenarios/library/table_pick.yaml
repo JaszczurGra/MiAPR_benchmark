@@ -1,0 +1,14 @@
+name: table_pick
+robot: ur5e
+# A table surface in FRONT of the robot (pushed out in +x and kept below the static
+# shoulder so the arm has free configurations) with an object box on top: the canonical
+# tabletop manipulation setup.
+world:
+  obstacles:
+    - {type: box, name: table,  size: [0.6, 1.0, 0.05], pose: {xyz: [0.65, 0.0, 0.10]}}
+    - {type: box, name: object, size: [0.08, 0.08, 0.16], pose: {xyz: [0.60, 0.10, 0.205]}}
+    - {type: box, name: ground, size: [2.0, 2.0, 0.04], pose: {xyz: [0.0, 0.0, -0.03]}}
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint

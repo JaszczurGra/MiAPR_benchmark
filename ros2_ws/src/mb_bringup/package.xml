@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<package format="3">
+  <name>mb_bringup</name>
+  <version>0.1.0</version>
+  <description>UR5e simulation + MoveIt bringup launch files for the MiAPR benchmark.</description>
+  <maintainer email="julian.mikolajczak@onet.pl">MiAPR</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Runtime launch dependencies (mock-hardware UR5e + MoveIt). -->
+  <exec_depend>ur_robot_driver</exec_depend>
+  <exec_depend>ur_moveit_config</exec_depend>
+  <exec_depend>ur_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <!-- Optional Gazebo simulation -->
+  <exec_depend>ur_simulation_gz</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,15 @@
+name: cluttered
+robot: ur5e
+# Mixed primitives (boxes, cylinders, a sphere) scattered in the workspace. General
+# clutter-avoidance; good for clearance/smoothness differences between planners.
+world:
+  obstacles:
+    - {type: box,      name: ground,  size: [2.0, 2.0, 0.04], pose: {xyz: [0.0, 0.0, -0.03]}}
+    - {type: cylinder, name: pole_a,  radius: 0.05, length: 0.8, pose: {xyz: [0.45, 0.20, 0.40]}}
+    - {type: cylinder, name: pole_b,  radius: 0.05, length: 0.8, pose: {xyz: [0.40, -0.25, 0.40]}}
+    - {type: box,      name: block,   size: [0.15, 0.15, 0.30], pose: {xyz: [0.30, 0.0, 0.15]}}
+    - {type: sphere,   name: ball,    radius: 0.10, pose: {xyz: [0.50, -0.05, 0.55]}}
+generation:
+  seed: 42
+  num_queries: 20
+  goal_type: joint
