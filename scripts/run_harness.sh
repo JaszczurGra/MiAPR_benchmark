@@ -11,26 +11,42 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 COMPOSE="docker compose -f docker/docker-compose.yml"
 
-RUNS="${RUNS:-10}"
-TIMEOUT="${TIMEOUT:-10}"
 SEED="${SEED:-42}"
-MOVEIT_PLANNERS="${MOVEIT_PLANNERS:-moveit:RRTConnect,moveit:RRT,moveit:PRM,moveit:BITstar,moveit:EST,moveit:KPIECE}"
+# runs/timeout come from config/planners.yaml (defaults:) -- the CLI reads them. Set the
+# RUNS/TIMEOUT env vars here only to override the YAML for this invocation.
+RUNS="${RUNS:-}"
+TIMEOUT="${TIMEOUT:-}"
+# Which planners each container runs. @<group> is expanded by mb-benchmark from
+# config/planners.yaml (harness:); override with an explicit comma list if you want.
+MOVEIT_PLANNERS="${MOVEIT_PLANNERS:-@moveit}"
+CUROBO_PLANNERS="${CUROBO_PLANNERS:-@curobo}"
 
-echo "[1/4] generate identical queries -> scenarios/generated"
+# Forward --runs/--timeout only when overridden above; otherwise the CLI uses the YAML.
+RUN_FLAGS=()
+[ -n "$RUNS" ]    && RUN_FLAGS+=(--runs "$RUNS")
+[ -n "$TIMEOUT" ] && RUN_FLAGS+=(--timeout "$TIMEOUT")
+
+echo "[1/4] generate identical queries -> scenarios/generated (MoveIt-validated)"
+# --validate-moveit: start/goal states are checked against MoveIt's mesh + self-collision
+# model (run here in the `ros` container) so the shared query set is valid under the
+# STRICTEST planner. cuRobo/straightline are more permissive, so the same queries work for
+# them too -- keeping the comparison fair.
+
+
 $COMPOSE run --rm ros \
   mb-benchmark generate --scenarios /workspace/scenarios/library \
-    --out /workspace/scenarios/generated --num 20 --seed "$SEED"
+    --out /workspace/scenarios/generated --num 20 --seed "$SEED" --validate-moveit
 
 echo "[2/4] run MoveIt planners (ros container)"
 $COMPOSE run --rm ros \
   mb-benchmark run --scenarios /workspace/scenarios/generated --no-autogen \
-    --planners "$MOVEIT_PLANNERS" --runs "$RUNS" --timeout "$TIMEOUT" --seed "$SEED" \
+    --planners "$MOVEIT_PLANNERS" "${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}" --seed "$SEED" \
     --out /workspace/results
 
 echo "[3/4] run cuRobo (curobo container, GPU)"
 $COMPOSE run --rm curobo \
   mb-benchmark run --scenarios /workspace/scenarios/generated --no-autogen \
-    --planners curobo --runs "$RUNS" --timeout "$TIMEOUT" --seed "$SEED" \
+    --planners "$CUROBO_PLANNERS" "${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}" --seed "$SEED" \
     --out /workspace/results
 
 echo "[4/4] score + report"

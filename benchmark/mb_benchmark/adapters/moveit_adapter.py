@@ -4,8 +4,8 @@ Runs ANY MoveIt planning pipeline / planner (OMPL, Pilz, CHOMP, STOMP) so the ha
 can re-measure MoveIt planners with the same metric code used for cuRobo.
 
 ENVIRONMENT: requires ROS 2 + MoveIt 2 + ``moveit_py`` + a UR MoveIt config. It can
-only run inside the ``ros`` container, launched with the UR MoveIt parameters loaded
-(see ``ros2_ws/src/mb_moveit_benchmarks`` and ``docs/03_harness.md``). The heavy imports
+only run inside the ``ros`` container; the UR MoveIt parameters are assembled in
+``setup()`` via ``MoveItConfigsBuilder`` (no launch wrapper needed). The heavy imports
 are deferred to ``setup()`` so this module imports fine with no ROS installed -- which is
 why ``moveit:*`` planners always appear in ``list-planners``.
 
@@ -35,6 +35,14 @@ OMPL_PLANNERS = [
     "RRTConnect", "RRT", "RRTstar", "PRM", "PRMstar",
     "BiTRRT", "BITstar", "EST", "KPIECE", "LBKPIECE", "SBL",
 ]
+
+# ONE MoveItPy for the whole process, shared by every MoveItAdapter (all planners + the
+# query validator). MoveItPy must not be re-created or garbage-collected mid-process: its
+# C++ teardown segfaults, which would crash `mb-benchmark run` between planners. The
+# singleton lives until process exit, where cli._hard_exit avoids the crash by exiting
+# before Python tears the C++ side down.
+_SHARED_MOVEIT = None
+_SHARED_ROBOT_MODEL = None
 
 
 class MoveItAdapter(PlannerAdapter):
@@ -66,32 +74,83 @@ class MoveItAdapter(PlannerAdapter):
 
     def setup(self, robot_name: str, obstacles: List[Obstacle]) -> None:  # pragma: no cover
         self._require_moveit()
-        from moveit.planning import MoveItPy
 
-        # Build the UR MoveIt parameters here so `mb-benchmark run` works as a plain
-        # process (no launch wrapper needed). Falls back to reading node params if the
-        # config builder is unavailable.
-        config_dict = None
-        try:
-            from moveit_configs_utils import MoveItConfigsBuilder
-
-            config_dict = (
-                MoveItConfigsBuilder("ur", package_name="ur_moveit_config")
-                .robot_description(mappings={"ur_type": robot_name, "name": "ur"})
-                .to_moveit_configs()
-                .to_dict()
-            )
-        except Exception:
-            config_dict = None
-
-        self._moveit = (
-            MoveItPy(node_name=self.node_name, config_dict=config_dict)
-            if config_dict is not None
-            else MoveItPy(node_name=self.node_name)
-        )
+        # Build/reuse ONE process-wide MoveItPy (see module note): re-creating it per
+        # planner/scenario is slow and its GC mid-run segfaults. Each scenario just swaps
+        # the collision world (see _apply_world).
+        global _SHARED_MOVEIT, _SHARED_ROBOT_MODEL
+        if _SHARED_MOVEIT is None:
+            _SHARED_MOVEIT = self._build_moveit_py(robot_name)
+            _SHARED_ROBOT_MODEL = _SHARED_MOVEIT.get_robot_model()
+        self._moveit = _SHARED_MOVEIT
+        self._robot_model = _SHARED_ROBOT_MODEL
         self._component = self._moveit.get_planning_component(self.group)
-        self._robot_model = self._moveit.get_robot_model()
         self._apply_world(obstacles)
+
+    def _build_moveit_py(self, robot_name: str):  # pragma: no cover
+        # Build a SELF-CONTAINED UR MoveIt config so `mb-benchmark run` works as a plain
+        # process (no launch/move_group needed). The URDF is generated from ur_description's
+        # xacro (nothing publishes /robot_description here); the SRDF/kinematics/joint_limits/
+        # planner configs come from ur_moveit_config. URDF (tf_prefix:="") and SRDF share
+        # joint names shoulder_pan_joint..wrist_3_joint, so the planning group
+        # "ur_manipulator" resolves. (Same MoveItConfigsBuilder recipe a benchmark launch
+        # file would use.) We
+        # fail loudly rather than silently degrade to a no-model MoveItPy, which would only
+        # error later in a confusing way.
+        import os
+        from pathlib import Path
+
+        from ament_index_python.packages import get_package_share_directory
+        from moveit_configs_utils import MoveItConfigsBuilder
+
+        config_dict = (
+            MoveItConfigsBuilder(robot_name="ur", package_name="ur_moveit_config")
+            .robot_description(
+                file_path=os.path.join(
+                    get_package_share_directory("ur_description"), "urdf", "ur.urdf.xacro"
+                ),
+                mappings={"ur_type": robot_name, "name": "ur", "tf_prefix": ""},
+            )
+            # SRDF robot name must equal the URDF robot name ("ur" above), else MoveIt
+            # rejects it: "Semantic description is not specified for the same robot".
+            .robot_description_semantic(Path("srdf") / "ur.srdf.xacro", {"name": "ur"})
+            .robot_description_kinematics(Path("config") / "kinematics.yaml")
+            .joint_limits(Path("config") / "joint_limits.yaml")
+            .planning_pipelines(
+                pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"],
+                default_planning_pipeline="ompl",
+            )
+            .to_moveit_configs()
+            .to_dict()
+        )
+
+        # MoveItConfigsBuilder emits a top-level `planning_pipelines: [<names>]` list (the
+        # form move_group reads), but MoveItCpp (which moveit_py uses) reads the names from
+        # `planning_pipelines.pipeline_names`. Without this rewrite MoveItPy finds zero
+        # pipelines and aborts with "Failed to load any planning pipelines". The per-pipeline
+        # configs stay at the top level (e.g. config_dict["ompl"]), which is where
+        # createPlanningPipelineMap looks for them.
+        pipeline_names = config_dict.get("planning_pipelines")
+        if isinstance(pipeline_names, list):
+            config_dict["planning_pipelines"] = {"pipeline_names": pipeline_names}
+
+        # ur_moveit_config's ompl_planning.yaml defines only plugins/adapters -- it has NO
+        # per-group section, so MoveIt can't find a planning configuration for
+        # "ur_manipulator" and silently falls back to broken defaults (no projection
+        # evaluator; coarse motion validation). That makes OMPL fail even in free space and
+        # produce paths that fail ValidateSolution. Inject the standard UR group config so
+        # the group maps to the available planners, gets a projection evaluator, and uses a
+        # fine collision-validation segment.
+        ompl = config_dict.setdefault("ompl", {})
+        planner_cfg_names = list(ompl.get("planner_configs", {}).keys())
+        ompl[self.group] = {
+            "planner_configs": planner_cfg_names,
+            "projection_evaluator": "joints(shoulder_pan_joint,shoulder_lift_joint)",
+            "longest_valid_segment_fraction": 0.005,
+        }
+
+        from moveit.planning import MoveItPy
+        return MoveItPy(node_name=self.node_name, config_dict=config_dict)
 
     def _apply_world(self, obstacles: List[Obstacle]) -> None:  # pragma: no cover
         from geometry_msgs.msg import Pose
@@ -100,6 +159,11 @@ class MoveItAdapter(PlannerAdapter):
 
         psm = self._moveit.get_planning_scene_monitor()
         with psm.read_write() as scene:
+            # MoveItPy is reused across scenarios, so wipe the previous world first. A
+            # CollisionObject with operation REMOVE and an empty id removes ALL world objects.
+            clear = CollisionObject()
+            clear.operation = CollisionObject.REMOVE
+            scene.apply_collision_object(clear)
             for obs in obstacles:
                 co = CollisionObject()
                 co.id = obs.name
@@ -143,6 +207,10 @@ class MoveItAdapter(PlannerAdapter):
         self._component.set_goal_state(robot_state=goal_state)
 
         params = PlanRequestParameters(self._moveit, self.pipeline)
+        # Must set planning_pipeline explicitly: PlanRequestParameters defaults it from
+        # `<pipeline>.plan_request_params.planning_pipeline`, which our config doesn't set,
+        # leaving it empty -> "No planning pipeline available for name ''".
+        params.planning_pipeline = self.pipeline
         params.planner_id = self.planner_id
         params.planning_time = float(timeout)
         params.planning_attempts = 1
@@ -163,8 +231,58 @@ class MoveItAdapter(PlannerAdapter):
             result.error = "no solution"
         return result
 
+    def is_state_valid(self, q) -> bool:  # pragma: no cover
+        """True if joint config ``q`` is collision-free (self + world) in the CURRENT
+        planning scene. Used to validate generated queries against MoveIt's mesh collision
+        model, which is stricter than the harness sphere model -- so the shared query set is
+        valid for every planner (cuRobo/straightline are more permissive). Call after
+        setup() so the scenario's world is loaded."""
+        from moveit.core.robot_state import RobotState
+
+        state = RobotState(self._robot_model)
+        state.set_joint_group_positions(self.group, np.asarray(q, dtype=float))
+        state.update()
+        psm = self._moveit.get_planning_scene_monitor()
+        with psm.read_only() as scene:
+            # is_state_valid = collision-free (self + world) AND within joint bounds AND
+            # satisfies constraints -- i.e. exactly the validity the OMPL planner enforces.
+            return scene.is_state_valid(
+                robot_state=state, joint_model_group_name=self.group
+            )
+
+    def is_solvable(self, start, goal, timeout: float = 5.0) -> bool:  # pragma: no cover
+        """True if MoveIt can actually find a path from ``start`` to ``goal`` in the CURRENT
+        scene within ``timeout``. Used to keep only WELL-POSED queries during generation:
+        random (start, goal) pairs in the UR self-collision-constrained C-space are often in
+        disconnected regions (no path exists), which no planner can solve and which make the
+        benchmark meaningless. Filtering by solvability guarantees a path exists; the more
+        capable planners (cuRobo) solve these too, so the comparison stays fair. Call after
+        setup() so the scenario's world is loaded."""
+        from moveit.core.robot_state import RobotState
+        from moveit.planning import PlanRequestParameters
+
+        ss = RobotState(self._robot_model)
+        ss.set_joint_group_positions(self.group, np.asarray(start, dtype=float))
+        ss.update()
+        self._component.set_start_state(robot_state=ss)
+        gs = RobotState(self._robot_model)
+        gs.set_joint_group_positions(self.group, np.asarray(goal, dtype=float))
+        gs.update()
+        self._component.set_goal_state(robot_state=gs)
+
+        params = PlanRequestParameters(self._moveit, self.pipeline)
+        params.planning_pipeline = self.pipeline
+        params.planner_id = self.planner_id
+        params.planning_time = float(timeout)
+        params.planning_attempts = 1
+        sol = self._component.plan(single_plan_parameters=params)
+        return bool(sol) and getattr(sol, "trajectory", None) is not None
+
     def teardown(self) -> None:  # pragma: no cover
-        self._moveit = None
+        # Intentionally keep self._moveit alive: the runner calls teardown() after every
+        # scenario, but MoveItPy is built once and reused (see setup). Destroying/recreating
+        # it per scenario is slow and segfaults in moveit_py's C++ teardown. It is released
+        # when the adapter object is garbage-collected at process end.
         self._component = None
 
 

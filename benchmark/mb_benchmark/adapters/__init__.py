@@ -17,7 +17,6 @@ from .base import (  # noqa: F401
 )
 
 # Each module self-registers on import. Order is irrelevant.
-from . import synthetic_adapter  # noqa: F401,E402
 from . import moveit_adapter  # noqa: F401,E402
 from . import curobo_adapter  # noqa: F401,E402
 from . import template_adapter  # noqa: F401,E402

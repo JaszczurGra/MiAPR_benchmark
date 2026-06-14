@@ -1,5 +1,0 @@
-Przygotowanie środowiska do benchmarkingu algorytmów planowania ruchu manipulatorów w systemie ROS 2	"- Uruchomienie symulacji ramienia UR5 w ROS 2
-- Konfiguracja, uruchomienie i przetestowanie wybranych algorytmów za pomocą modułu moveit_ros_benchmarks (link1, link2)
-- Przygotowanie środowiska testów porównawczych (różne przeszkody, losowe konfiguracje startu i celu, wielokrotne powtórzenia i obliczenia metryk, np. czas planowania, długość ścieżki, gładkość ścieżki)
-- Zintegrowanie co najmniej jednego algorytmu niedostępnego w MoveIt, np. cuRobo
-- Umożliwienie dodawania (implementowania) dodatkowych algorytmów do porównań"

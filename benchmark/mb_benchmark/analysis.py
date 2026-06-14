@@ -134,15 +134,11 @@ def build_report(df: pd.DataFrame, out_dir, scenarios: Optional[Dict[str, Scenar
         if (plots_dir / f"{metric}.png").exists():
             plot_files.append(fname)
 
-    report = out_dir / "report.md"
+
+    
+    report = out_dir / "summary.txt"
     with open(report, "w") as fh:
-        fh.write("# Motion-planning benchmark report\n\n")
         fh.write(f"Planners: {', '.join(sorted(df['planner'].unique()))}\n\n")
         fh.write(f"Scenarios: {', '.join(sorted(df['scenario'].unique()))}\n\n")
         fh.write(f"Total plan attempts: {len(df)}\n\n")
-        fh.write("## Summary (per planner x scenario)\n\n")
-        fh.write(_to_markdown(summary))
-        fh.write("\n\n## Plots\n\n")
-        for pf in plot_files:
-            fh.write(f"![{pf}]({pf})\n\n")
-    return report
+    print('Saved report to ', report)

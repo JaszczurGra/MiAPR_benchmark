@@ -1,7 +1,6 @@
 # Orchestrates the three services. Run commands from the repo root.
 #
 #   docker compose -f docker/docker-compose.yml build
-#   docker compose -f docker/docker-compose.yml up -d mongo
 #   docker compose -f docker/docker-compose.yml run --rm ros    bash
 #   docker compose -f docker/docker-compose.yml run --rm curobo bash
 #
@@ -9,17 +8,19 @@
 # are picked up live, and results land back on the host under ./results.
 
 services:
-  # ROS 2 + MoveIt + UR5e + moveit_py + harness (MoveIt adapter, Pipeline A). CPU.
+  # ROS 2 + MoveIt + UR5e + moveit_py + harness (MoveIt adapter). CPU.
   ros:
     build:
       context: ..
       dockerfile: docker/Dockerfile.ros
-    image: miapr/ros:humble
-    network_mode: host          # easiest DDS + reaches `mongo` via localhost-style
+    image: miapr/ros:jazzy
+    network_mode: host          # easiest DDS setup (no NAT between host and container)
     ipc: host
     environment:
       - ROS_DOMAIN_ID=0
       - DISPLAY=${DISPLAY:-}     # for RViz; also run `xhost +local:` on the host
+      - LIBGL_ALWAYS_SOFTWARE=1  # ros service has no GPU passthrough; render RViz on CPU (llvmpipe)
+      - XDG_RUNTIME_DIR=/tmp/runtime-root  # silence Qt warning
     volumes:
       - ../:/workspace
       - ./entrypoints:/entrypoints:ro
@@ -47,12 +48,3 @@ services:
               count: all
               capabilities: [gpu]
 
-  # MongoDB warehouse for Pipeline A (moveit_ros_benchmarks scenes/queries).
-  mongo:
-    image: mongo:6
-    network_mode: host          # exposes 27017 on localhost for the ros service
-    volumes:
-      - mongo_data:/data/db
-
-volumes:
-  mongo_data:

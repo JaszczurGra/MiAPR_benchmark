@@ -10,7 +10,7 @@ queries -> fair, reproducible comparison across all planners and both pipelines.
 from __future__ import annotations
 
 import warnings
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import numpy as np
 
@@ -32,10 +32,18 @@ def _sample_free_config(
     low: np.ndarray,
     high: np.ndarray,
     max_tries: int = 300,
+    is_valid: Optional[Callable[[np.ndarray], bool]] = None,
 ) -> Optional[np.ndarray]:
+    """Sample a config that is collision-free. If ``is_valid`` is given (e.g. a MoveIt
+    mesh+self-collision check) it is the AUTHORITATIVE gate -- the coarse sphere model is
+    skipped, because MoveIt already checks the world we mirrored into it, and the sphere
+    model would otherwise reject some configs MoveIt considers valid (and vice-versa)."""
     for _ in range(max_tries):
         q = rng.uniform(low, high)
-        if not in_collision(model, q, obstacles):
+        if is_valid is not None:
+            if is_valid(q):
+                return q
+        elif not in_collision(model, q, obstacles):
             return q
     return None
 
@@ -53,11 +61,25 @@ def generate_queries(
     num_queries: Optional[int] = None,
     seed: Optional[int] = None,
     goal_type: str = "joint",
+    is_valid: Optional[Callable[[np.ndarray], bool]] = None,
+    is_solvable: Optional[Callable[[np.ndarray, np.ndarray], bool]] = None,
 ) -> List[Query]:
     """Fill ``scenario.queries`` with seeded collision-free start/goal pairs.
 
     ``goal_type`` is recorded for the adapters' benefit; both ``goal_joint`` and
     ``goal_pose`` are always stored so either planner style works.
+
+    ``is_valid`` (optional) overrides the offline sphere collision check with an external
+    state-validity predicate -- in practice MoveIt's mesh+self-collision check, so the
+    shared query set is valid under the STRICTEST planner. Configs valid for MoveIt are
+    also valid for the more permissive sphere-based planners (cuRobo, straightline), which
+    keeps the comparison fair.
+
+    ``is_solvable(start, goal)`` (optional) keeps only WELL-POSED pairs -- those for which a
+    path actually exists (checked by really planning with MoveIt). Random valid pairs in the
+    UR self-collision-constrained C-space are frequently in disconnected regions that no
+    planner can solve; filtering them out makes the benchmark meaningful (compare HOW well
+    planners solve solvable problems) rather than measuring an unsolvable-query rate.
     """
     gen = scenario.generation or {}
     num_queries = num_queries if num_queries is not None else int(gen.get("num_queries", 20))
@@ -75,12 +97,14 @@ def generate_queries(
     max_attempts = num_queries * 50 + 100
     while len(queries) < num_queries and attempts < max_attempts:
         attempts += 1
-        start = _sample_free_config(rng, model, scenario.obstacles, low, high)
-        goal = _sample_free_config(rng, model, scenario.obstacles, low, high)
+        start = _sample_free_config(rng, model, scenario.obstacles, low, high, is_valid=is_valid)
+        goal = _sample_free_config(rng, model, scenario.obstacles, low, high, is_valid=is_valid)
         if start is None or goal is None:
             continue
         if np.linalg.norm(goal - start) < 0.5:  # avoid trivial queries
             continue
+        if is_solvable is not None and not is_solvable(start, goal):
+            continue  # valid endpoints but no path between them -> skip (keep it well-posed)
         queries.append(
             Query(id=qid, start=start, goal_joint=goal, goal_pose=_ee_pose_dict(model, goal))
         )

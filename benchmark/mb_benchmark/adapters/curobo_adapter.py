@@ -90,6 +90,15 @@ class CuRoboAdapter(PlannerAdapter):
                                           radius=float(obs.params["radius"]),
                                           height=float(obs.params["length"])))
             # mesh: add WorldConfig.from_dict mesh entry in a follow-up.
+
+        # cuRobo's primitive collision checker raises "Primitive Collision has no obstacles"
+        # for a fully empty world, so the `empty` scenario would otherwise fail at setup. Add
+        # one tiny cuboid placed far outside the UR5e's ~0.85 m reach: it keeps the collision
+        # world non-degenerate while being unreachable, so it never affects any plan.
+        if not (cuboids or spheres or cylinders):
+            cuboids.append(Cuboid(name="_empty_world_placeholder",
+                                  pose=[100.0, 100.0, 100.0, 1.0, 0.0, 0.0, 0.0],
+                                  dims=[0.01, 0.01, 0.01]))
         return WorldConfig(cuboid=cuboids, sphere=spheres, cylinder=cylinders)
 
     def plan(self, query: Query, timeout: float, seed: int, run: int = 0) -> PlanResult:  # pragma: no cover

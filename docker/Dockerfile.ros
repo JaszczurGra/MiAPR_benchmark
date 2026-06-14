@@ -1,37 +1,53 @@
-# ROS 2 Humble + MoveIt 2 + UR5e + moveit_py + the benchmark harness.
+# ROS 2 Jazzy + MoveIt 2 + UR5e + moveit_py + the benchmark harness.
 # CPU-only is fine (planning runs on CPU). On Arch this is the ONLY supported way to get
 # ROS 2; the host never needs ROS installed.
 #
+# Why Jazzy (not Humble): moveit_py is published as a binary for Jazzy
+# (ros-jazzy-moveit-py) but was never shipped as a Humble binary (moveit/moveit2#3454),
+# so the harness MoveIt adapter would otherwise need a source build. Jazzy = Ubuntu 24.04.
+#
 # Build:  docker compose -f docker/docker-compose.yml build ros
-FROM moveit/moveit2:humble-release
+FROM moveit/moveit2:jazzy-release
 
 SHELL ["/bin/bash", "-lc"]
 ENV DEBIAN_FRONTEND=noninteractive
+# Jazzy = Ubuntu 24.04 (Python 3.12) enforces PEP 668 ("externally-managed-environment"),
+# which blocks `pip install` into the system Python. Inside this container the system env
+# IS our env, so allow it. Persists to runtime too -> covers the entrypoint's pip install.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # --- ROS packages: UR driver + UR MoveIt config + moveit_py + benchmarks + warehouse ---
+# moveit-ros-benchmarks + warehouse are kept for the MANUAL moveit_ros_benchmarks run
+# (task 2, done by hand -- see testowanie_wybranych_moveit_ros_benchmarks.md).
+# NOTE: the Mongo warehouse backend (warehouse_ros_mongo) is not released for Jazzy
+# (nor Humble); the SQLite backend (warehouse_ros_sqlite) is the available one, and
+# moveit_ros_warehouse itself ships separately.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ros-humble-ur \
-      ros-humble-ur-robot-driver \
-      ros-humble-ur-moveit-config \
-      ros-humble-ur-description \
-      ros-humble-ur-simulation-gz \
-      ros-humble-moveit-py \
-      ros-humble-moveit-ros-benchmarks \
-      ros-humble-moveit-ros-warehouse \
-      ros-humble-warehouse-ros-mongo \
-      ros-humble-pinocchio \
+      ros-jazzy-ur \
+      ros-jazzy-ur-robot-driver \
+      ros-jazzy-ur-moveit-config \
+      ros-jazzy-ur-description \
+      ros-jazzy-ur-simulation-gz \
+      ros-jazzy-moveit-py \
+      ros-jazzy-moveit-ros-benchmarks \
+      ros-jazzy-moveit-ros-warehouse \
+      ros-jazzy-warehouse-ros-sqlite \
+      ros-jazzy-pinocchio \
       python3-pip git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
 # --- Python harness (offline core: scenarios, metrics, analysis, MoveIt adapter) ---
+# Non-editable install: the source is COPYed in (not host-mounted), so `-e` buys nothing
+# here and would require setuptools>=64 (PEP 660 build_editable hook), which this base
+# image's build env lacks. A regular wheel install works on any setuptools.
 COPY benchmark /workspace/benchmark
-RUN pip install --no-cache-dir -e /workspace/benchmark
+RUN pip install --no-cache-dir /workspace/benchmark
 
-# --- Build the ROS 2 workspace (mb_bringup, mb_moveit_benchmarks) ---
+# --- Build the ROS 2 workspace (mb_bringup) ---
 COPY ros2_ws /workspace/ros2_ws
-RUN source /opt/ros/humble/setup.bash \
+RUN source /opt/ros/jazzy/setup.bash \
     && cd /workspace/ros2_ws \
     && rosdep update || true \
     && rosdep install --from-paths src --ignore-src -r -y || true \
