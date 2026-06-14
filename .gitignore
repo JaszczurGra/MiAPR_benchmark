@@ -15,7 +15,7 @@ ros2_ws/install/
 ros2_ws/log/
 
 # Benchmark outputs
-results/
+results/raw
 scenarios/generated/
 *.db
 *.log
