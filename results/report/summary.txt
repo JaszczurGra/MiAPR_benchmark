@@ -1,0 +1,6 @@
+Planners: curobo, moveit:BITstar, moveit:EST, moveit:KPIECE, moveit:PRM, moveit:RRT, moveit:RRTConnect, moveit:RRTstar, straightline
+
+Scenarios: cluttered, empty, narrow_passage, shelf, single_box, table_pick
+
+Total plan attempts: 3240
+

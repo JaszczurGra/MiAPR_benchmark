@@ -24,13 +24,13 @@ from .kinematics import get_robot  # noqa: E402
 from .metrics import compute_metrics  # noqa: E402
 from .scenario import Scenario  # noqa: E402
 
-# Metrics shown in the report. (metric, nicer label, lower_is_better, success_only)
+# Metrics shown in the report. (metric, nicer label, lower_is_better, success_only, log_scale)
 _METRICS = [
-    ("planning_time_s", "Planning time [s]", True, True),
-    ("joint_path_length", "Joint path length [rad]", True, True),
-    ("cartesian_path_length", "Cartesian path length [m]", True, True),
-    ("smoothness_geom", "Smoothness (lower=smoother)", True, True),
-    ("clearance", "Min clearance [m]", False, True),
+    ("planning_time_s", "Czas planowania [s]", True, True, True),
+    ("joint_path_length", "Długość ścieżki w przestrzeni stawów [rad]", True, True, False),
+    ("cartesian_path_length", "Długość ścieżki kartezjańskiej [m]", True, True, False),
+    ("smoothness_geom", "Gładkość (niżej = gładsza)", True, True, True),
+    ("clearance", "Minimalny prześwit [m]", False, True, False),
 ]
 
 
@@ -80,7 +80,8 @@ def summarize(df: pd.DataFrame) -> pd.DataFrame:
     return succ.to_frame().join(agg).reset_index()
 
 
-def _boxplot(df: pd.DataFrame, metric: str, label: str, success_only: bool, out_path: Path) -> None:
+def _boxplot(df: pd.DataFrame, metric: str, label: str, success_only: bool, out_path: Path,
+             log_scale: bool = False) -> None:
     data = df[df["success"]] if success_only else df
     data = data[pd.notna(data[metric])]
     planners = sorted(data["planner"].unique())
@@ -91,8 +92,10 @@ def _boxplot(df: pd.DataFrame, metric: str, label: str, success_only: bool, out_
     ax.boxplot(series, showfliers=False)
     ax.set_xticks(range(1, len(planners) + 1))
     ax.set_xticklabels(planners)
-    ax.set_ylabel(label)
-    ax.set_title(label + "  (all scenarios)")
+    # ax.set_ylabel(label)
+    ax.set_title(label)# + "  (wszystkie scenariusze)")
+    if log_scale:
+        ax.set_yscale("log")
     ax.tick_params(axis="x", rotation=45)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
@@ -105,8 +108,8 @@ def _success_bar(df: pd.DataFrame, out_path: Path) -> None:
     fig, ax = plt.subplots(figsize=(max(6, 1.1 * len(rate)), 4.5))
     ax.bar(rate.index, rate.values)
     ax.set_ylim(0, 1)
-    ax.set_ylabel("Success rate")
-    ax.set_title("Success rate (all scenarios)")
+    ax.set_ylabel("Współczynnik sukcesu")
+    ax.set_title("Współczynnik sukcesu")
     ax.tick_params(axis="x", rotation=45)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
@@ -126,11 +129,11 @@ def build_report(df: pd.DataFrame, out_dir, scenarios: Optional[Dict[str, Scenar
 
     _success_bar(df, plots_dir / "success_rate.png")
     plot_files = ["plots/success_rate.png"]
-    for metric, label, _lower, success_only in _METRICS:
+    for metric, label, _lower, success_only, log_scale in _METRICS:
         if metric not in df.columns:
             continue
         fname = f"plots/{metric}.png"
-        _boxplot(df, metric, label, success_only, plots_dir / f"{metric}.png")
+        _boxplot(df, metric, label, success_only, plots_dir / f"{metric}.png", log_scale=log_scale)
         if (plots_dir / f"{metric}.png").exists():
             plot_files.append(fname)
 

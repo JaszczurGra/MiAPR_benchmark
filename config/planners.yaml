@@ -1,6 +1,6 @@
 defaults:
   timeout: 10.0
-  num: 40       
+  num: 50       
   runs: 3
 
 

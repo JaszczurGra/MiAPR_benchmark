@@ -1,10 +1,7 @@
-# Pure-Python dependencies for the cross-framework benchmark harness (`mb_benchmark`).
-# These are enough to run the offline core: scenario generation, metrics, the
-# pure-Python straightline baseline, analysis and plotting. No ROS and no GPU required.
+
 numpy>=1.21
 PyYAML>=5.4
 pandas>=1.3
 matplotlib>=3.4
 
-# Optional, only used by analysis if present (nicer plots). Safe to omit.
-# seaborn>=0.12
+

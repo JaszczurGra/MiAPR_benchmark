@@ -26,30 +26,33 @@ RUN_FLAGS=()
 [ -n "$RUNS" ]    && RUN_FLAGS+=(--runs "$RUNS")
 [ -n "$TIMEOUT" ] && RUN_FLAGS+=(--timeout "$TIMEOUT")
 
-echo "[1/4] generate identical queries -> scenarios/generated (MoveIt-validated)"
-# --validate-moveit: start/goal states are checked against MoveIt's mesh + self-collision
-# model (run here in the `ros` container) so the shared query set is valid under the
-# STRICTEST planner. cuRobo/straightline are more permissive, so the same queries work for
-# them too -- keeping the comparison fair.
-
+echo "[1/5] generate identical queries -> scenarios/generated (MoveIt-validated)"
+#validates using movit start/end pos
 
 $COMPOSE run --rm ros \
   mb-benchmark generate --scenarios /workspace/scenarios/library \
     --out /workspace/scenarios/generated --num 20 --seed "$SEED" --validate-moveit
 
-echo "[2/4] run MoveIt planners (ros container)"
+
+echo "[2/5] runing baselines"
+$COMPOSE run --rm ros \
+  mb-benchmark run --scenarios /workspace/scenarios/generated --no-autogen \
+    --planners "${BASELINE_PLANNERS:-@baselines}" "${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}" \
+    --seed "$SEED" --out /workspace/results
+
+echo "[3/5] run MoveIt planners (ros container)"
 $COMPOSE run --rm ros \
   mb-benchmark run --scenarios /workspace/scenarios/generated --no-autogen \
     --planners "$MOVEIT_PLANNERS" "${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}" --seed "$SEED" \
     --out /workspace/results
 
-echo "[3/4] run cuRobo (curobo container, GPU)"
+echo "[4/5] run cuRobo (curobo container, GPU)"
 $COMPOSE run --rm curobo \
   mb-benchmark run --scenarios /workspace/scenarios/generated --no-autogen \
     --planners "$CUROBO_PLANNERS" "${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"}" --seed "$SEED" \
     --out /workspace/results
 
-echo "[4/4] score + report"
+echo "[5/5] score + report"
 $COMPOSE run --rm ros \
   mb-benchmark report --scenarios /workspace/scenarios/generated --no-autogen \
     --raw /workspace/results/raw --out /workspace/results/report

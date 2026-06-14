@@ -58,33 +58,38 @@ https://moveit.picknik.ai/main/doc/how_to_guides/benchmarking/benchmarking_tutor
 odpalenie  RUN SIM stworzenie jakiejs losowej mapy chyba ze sie da z yamly z scenarios/libarary 
 mocniej opisane jest w testowanie_wybranych_moveit_benchmark.md (wyszukaj: TODO Jeżeli chcemy tylko ze bylo odpaleone ale bez grafow co i tak bd imo okey )
 
-Tak czy siak bym dal grafy ktore on generuje moveit ale nie musza byc te same mapy tylko ogolnie mysle  
+Tak czy siak bym dal grafy ktore on generuje (moveit) ale nie musza byc te same mapy tylko ogolnie mysle  
 
+
+Mapy ktore byly testowane: cluttered, empty, narrow_passage, shelf, single_box, table_pick
+ 
+TODO KACPER dac moze zdj jak one wygladaja jezeli da sie zaladowac z yamla (scenarios/library lub scenrios/generated) tylko jak wygladaja besides empty alternatywnie je opisac 
 
 Planery ktore zostały przetestowane: 
 
-harness:
-  moveit:           
-    - moveit:RRTConnect
-    - moveit:RRT
-    - moveit:RRTstar
-    - moveit:PRM
-    - moveit:BITstar
-    - moveit:EST
-    - moveit:KPIECE
-  curobo:          
-    - curobo
-  baselines:       
-    - straightline
+moveit:           
+   - moveit:RRTConnect
+   - moveit:RRT
+   - moveit:RRTstar
+   - moveit:PRM
+   - moveit:BITstar
+   - moveit:EST
+   - moveit:KPIECE
+curobo:          
+   - curobo
+baselines:       
+   - straightline
 
  zostal odpalony 
- po 10 razy (roznych startow i koncow) z maksymalnym czasem planowania 10s oraz po 3 proby na kazda z nich 
-
+ po 50 razy (roznych startow i koncow) z maksymalnym czasem planowania 10s oraz po 3 proby na kazda z nich 
+wiekszosc algorytmow zajela malo czasu zeby sie wygeneratowac RRT* zwazajac jest typu star (optymalizacyjny), dąży on do znalezienia ścieżki idealnej i wykorzystał cały dostępny czas na znalezienie rozwiązania
 
 TODO opisac w skrocie jak dziala straightline oraz curobo 
 
 
- Rezulataty tych porownan: 
+
+Rezulataty tych porownan: 
+Lacznie 3240 sciezek zotalo zaplanowane 
 
 ![results/report/plots/success_rate.png](results/report/plots/success_rate.png)
 
