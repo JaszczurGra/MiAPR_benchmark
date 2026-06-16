@@ -81,12 +81,16 @@ Wykonany test:
   (zakładka *Scene Objects* → *Publish*) i zapisana do warehouse (*Stored Scenes* → *Save*).
 - **Stany start/cel:** jedna para zapisana jako nazwane stany (*Stored States*), tak aby
   problem był ustalony, a nie losowy.
-- **Porównane planery (OMPL):** `RRTConnect`, `RRTstar`, `RRT`, `PRM` — celowo zestawiono
+- **Porównane planery (OMPL):** `RRTConnect`, `RRTstar`, `RRT`, `PRM`, `EST` — celowo zestawiono
   planery *feasible* (znajdujące dowolną ścieżkę szybko, np. RRTConnect) z planerem
   **optymalizacyjnym** `RRTstar` (asymptotycznie optymalny — krótsza ścieżka kosztem czasu).
   To najbardziej pouczający kontrast w nauczaniu.
-- **Parametry benchmarku** (`benchmark.yaml`): `runs: 3` (powtórzenia na parę planer×zapytanie),
+- **Parametry benchmarku** (`benchmark.yaml`): `runs: 5` (powtórzenia na parę planer×zapytanie),
   `timeout: 10.0 s`, grupa `ur_manipulator`.
+
+W trakcie konfiguracji napotkano i naprawiono bug w `warehouse_ros_sqlite` 1.0.5 — brakująca
+kolumna `M_planning_scene_id` w schemacie SQLite. Fix zastosowano w
+`ros2_ws/src/warehouse_ros_sqlite/`.
 
 Konfigurację wtyczki w RViz pokazuje poniższy zrzut — wybrana biblioteka planowania **OMPL**
 oraz aktywne połączenie z magazynem warehouse (Host/Port w sekcji *Warehouse* — stan
