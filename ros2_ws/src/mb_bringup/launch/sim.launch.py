@@ -10,7 +10,14 @@ Run (inside the `ros` container, after sourcing the workspace):
 
 NOTE: with mock hardware the scaled_joint_trajectory_controller does not work; we fall
 back to joint_trajectory_controller (see Universal Robots ROS 2 driver docs).
+
+NOTE: warehouse_ros_sqlite 1.0.5 (Jazzy) has a bug where saving a planning scene via
+RViz fails with "no such column: M_planning_scene_id" on the first query before any
+insert. Workaround: delete ~/.ros/warehouse_ros.sqlite inside the container and retry,
+or pass warehouse_sqlite_path:=/tmp/fresh.sqlite to force a clean database.
 """
+
+import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -22,11 +29,21 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     ur_type = LaunchConfiguration("ur_type")
     launch_rviz = LaunchConfiguration("launch_rviz")
+    warehouse_sqlite_path = LaunchConfiguration("warehouse_sqlite_path")
 
     args = [
         DeclareLaunchArgument("ur_type", default_value="ur5e",
                               description="UR model (ur5e default; ur5 for strict CB-series)."),
         DeclareLaunchArgument("launch_rviz", default_value="true"),
+        DeclareLaunchArgument(
+            "warehouse_sqlite_path",
+            default_value=os.path.expanduser("~/.ros/warehouse_ros.sqlite"),
+            description=(
+                "Path to warehouse_ros SQLite database. "
+                "Pass a fresh path (e.g. /tmp/warehouse.sqlite) if you hit "
+                "'no such column: M_planning_scene_id' — a known warehouse_ros_sqlite 1.0.5 bug."
+            ),
+        ),
     ]
 
     # 1) Driver with mock hardware -> publishes robot state + ros2_control controllers.
@@ -53,6 +70,7 @@ def generate_launch_description():
             "ur_type": ur_type,
             "use_mock_hardware": "true",
             "launch_rviz": launch_rviz,
+            "warehouse_sqlite_path": warehouse_sqlite_path,
         }.items(),
     )
 
