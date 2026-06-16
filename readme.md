@@ -356,13 +356,12 @@ kolizji (sekcja 7.3).
 
 <div style="page-break-after: always;"></div>
 
-## 9. Decyzje projektowe (domyślne ustawienia + uzasadnienie)
+## 9. Decyzje projektowe
 
 | Decyzja | Domyślnie | Dlaczego |
 |---|---|---|
-| Dostarczanie | Docker (multi-service) | Arch nie ma binariów ROS 2; powtarzalność; izolacja GPU |
-| Dystrybucja ROS | Jazzy | MoveIt 2 + UR + benchmarki, **oraz** `moveit_py` jako binarka (`ros-jazzy-moveit-py`) — Humble nigdy jej nie wydał (moveit/moveit2#3454), co wymuszałoby budowę ze źródeł dla adaptera MoveIt |
-| Robot | **ur5e wszędzie** | cuRobo dostarcza zwalidowany `ur5e.yml`; ręcznie robiony, nietestowalny config sfer ur5 byłby *cichym* błędem poprawności. ur5e należy do rodziny UR5. (Ścisły UR5 to udokumentowane rozszerzenie.) |
+| Dystrybucja ROS | Jazzy | MoveIt 2 + UR + benchmarki, **oraz** `moveit_py` jako binarka (`ros-jazzy-moveit-py`)|
+| Robot | **ur5e wszędzie** | cuRobo dostarcza zwalidowany `ur5e.yml` a ur5 niestety nie; ur5e należy do rodziny UR5.  |
 | Symulacja | Mock hardware | Planowanie potrzebuje tylko sceny planistycznej, nie fizyki; deterministyczne i szybkie |
 | Interfejs MoveIt | `moveit_py` | In-process, dowolny pipeline/planer, zwraca pełną trajektorię; fallback MoveGroup udokumentowany |
 | cuRobo | samodzielny `MotionGen` | Bez Isaac/ROS -> czysty, izolowany adapter |
@@ -371,9 +370,6 @@ kolizji (sekcja 7.3).
 ---
 
 ## 10. Dodatek — rozszerzanie i konfiguracja
-
-> Komendy uruchomieniowe (build, symulacja, pełny benchmark, generowanie raportu,
-> kontenery, czyszczenie wyników) zebrano na początku raportu — sekcja **Jak uruchomić**.
 
 ### 10.1. Dodanie nowego planera
 
@@ -386,7 +382,7 @@ Kroki:
    -> `benchmark/mb_benchmark/adapters/<nazwa>_adapter.py`
 2. Zaimplementuj:
    - `setup(robot_name, obstacles)` — zbuduj planner ze sceny. Ciężkie importy (ROS/torch)
-     **TYLKO tutaj**, nie na poziomie modułu (offline core musi importować się bez ROS/GPU).
+
    - `plan(query, timeout, seed, run) -> PlanResult` z `trajectory` (lista pozycji w
      przestrzeni złączy); ustaw `time_from_start` jeśli masz czasy; ustaw
      `requires_warmup = True` gdy GPU.
