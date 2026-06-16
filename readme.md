@@ -405,7 +405,7 @@ granicy). Domyślnie ur5e / Jazzy / mock hardware.
 
 ### 10.2. Skąd biorą się runs / timeout / lista planerów
 
-Źródłem prawdy jest `config/planners.yaml` 
+Z pliku`config/planners.yaml` 
 
 Nadpisanie na jedno uruchomienie:
 ```bash
