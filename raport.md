@@ -1,4 +1,19 @@
-# Raport — Benchmark algorytmów planowania ruchu manipulatora UR5e
+
+
+<img src="https://ankiety.put.poznan.pl/images/logo.png" alt="Politechnika Poznańska Logo" width="250">
+
+# Benchmark algorytmów planowania ruchu manipulatora UR5e
+
+
+<h2>
+Przedmiot: Metody i Algorytmy Planowanie Ruchu
+</h2>
+
+<h3>
+Prowadzący: mgr inż. Bratosz Kulecki
+
+Autor: inż. Julian Mikołajczak & inż Kacper Biadała</h3>
+
 
 Porównanie planerów ruchu dla manipulatora **UR5e** w jednolitym, sprawiedliwym
 środowisku testowym. Zestawiono planery próbkujące z MoveIt 2 (OMPL), planer
@@ -6,7 +21,6 @@ optymalizacyjny **cuRobo** (NVIDIA, GPU) oraz prostą linię odniesienia
 (*straightline*). Wszystkie metryki liczone są **jednym kodem**, w ten sam sposób dla
 każdego planera — to podstawowa zasada uczciwości porównania.
 
----
 
 ## Jak uruchomić
 
@@ -42,7 +56,8 @@ docker compose -f docker/docker-compose.yml run --rm curobo bash
 rm -rf results/ scenarios/generated/ benchmark/*.egg-info benchmark/build
 ```
 
----
+
+<div style="page-break-after: always;"></div>
 
 ## 1. Cel i zakres
 
@@ -117,7 +132,8 @@ Potok uruchamiany jest skryptem `scripts/run_harness.sh`, który kolejno:
 3. uruchamia planowanie cuRobo,
 4. generuje wykresy z zebranych metryk (`.csv`).
 
----
+
+<div style="page-break-after: always;"></div>
 
 ## 4. Scenariusze (mapy testowe)
 
@@ -140,10 +156,10 @@ Przetestowano **6 map**: `cluttered`, `empty`, `narrow_passage`, `shelf`, `singl
 
 <table style="border: none;">
 <tr style="border: none;">
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/empty.png" alt="empty"></td>
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/cluttered.png" alt="cluttered"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/empty.png" alt="empty"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/cluttered.png" alt="cluttered"></td>
 
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/narrow_passage.png" alt="narrow_passage"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/narrow_passage.png" alt="narrow_passage"></td>
 </tr>
 <tr style="border: none;">
 <td align="center" style="border: none;"><b>empty</b></td>
@@ -151,9 +167,9 @@ Przetestowano **6 map**: `cluttered`, `empty`, `narrow_passage`, `shelf`, `singl
 <td align="center" style="border: none;"><b>narrow_passage</b></td>
 </tr>
 <tr style="border: none;">
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/shelf.png" alt="shelf"></td>
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/single_box.png" alt="single_box"></td>
-<td align="center" style="border: none;"><img src="results/report/maps/cropped/table.png" alt="table_pick"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/shelf.png" alt="shelf"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/single_box.png" alt="single_box"></td>
+<td align="center" style="border: none;"><img style="width:200px;height:200px;object-fit:contain;" src="results/report/maps/cropped/table.png" alt="table_pick"></td>
 </tr>
 <tr style="border: none;">
 <td align="center" style="border: none;"><b>shelf</b></td>
@@ -196,11 +212,6 @@ Cele zadawane są w przestrzeni pozy (FK celu), a nie złączy. Wymaga karty NVI
 PyTorch i działa wyłącznie w kontenerze `curobo`; pierwsze planowanie (warmup: CUDA-graph /
 JIT) jest odrzucane i nie wchodzi do pomiarów.
 
-> Dla planerów próbkujących OMPL (RRT, RRTConnect, PRM, EST, KPIECE) oraz optymalizacyjnych
-> (RRTstar, BITstar) szczegółowy opis i wskazówki doboru znajdują się w
-> `testowanie_wybranych_moveit_ros_benchmarks.md` (sekcja *Available planners*).
-
----
 
 ## 6. Konfiguracja eksperymentu
 
@@ -221,6 +232,8 @@ optymalnej i z założenia wykorzystuje **cały** dostępny budżet czasu na pop
 stąd jego czas planowania równy jest niemal dokładnie timeoutowi (10 s) na wszystkich mapach.
 
 ---
+
+<div style="page-break-after: always;"></div>
 
 ## 7. Metodyka i definicje metryk
 
@@ -286,6 +299,8 @@ ukrycia.
 
 ---
 
+<div style="page-break-after: always;"></div>
+
 ## 8. Wyniki
 
 Łącznie zaplanowano **3240 ścieżek** (9 planerów × 6 map × 50 zapytań × 3 powtórzenia, z
@@ -338,6 +353,8 @@ kolizji (sekcja 7.3).
 (surowe metryki per ścieżka).*
 
 ---
+
+<div style="page-break-after: always;"></div>
 
 ## 9. Decyzje projektowe (domyślne ustawienia + uzasadnienie)
 
