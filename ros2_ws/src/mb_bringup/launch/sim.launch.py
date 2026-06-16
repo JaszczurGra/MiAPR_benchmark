@@ -11,10 +11,6 @@ Run (inside the `ros` container, after sourcing the workspace):
 NOTE: with mock hardware the scaled_joint_trajectory_controller does not work; we fall
 back to joint_trajectory_controller (see Universal Robots ROS 2 driver docs).
 
-NOTE: warehouse_ros_sqlite 1.0.5 (Jazzy) has a bug where saving a planning scene via
-RViz fails with "no such column: M_planning_scene_id" on the first query before any
-insert. Workaround: delete ~/.ros/warehouse_ros.sqlite inside the container and retry,
-or pass warehouse_sqlite_path:=/tmp/fresh.sqlite to force a clean database.
 """
 
 import os
@@ -37,7 +33,7 @@ def generate_launch_description():
         DeclareLaunchArgument("launch_rviz", default_value="true"),
         DeclareLaunchArgument(
             "warehouse_sqlite_path",
-            default_value=os.path.expanduser("~/.ros/warehouse_ros.sqlite"),
+            default_value="/workspace/results/moveit_benchmarks/warehouse_ros.sqlite",
             description=(
                 "Path to warehouse_ros SQLite database. "
                 "Pass a fresh path (e.g. /tmp/warehouse.sqlite) if you hit "

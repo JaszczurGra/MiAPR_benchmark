@@ -1,0 +1,26 @@
+/**:
+  ros__parameters:
+    benchmark_config:
+      warehouse:
+        host: "/workspace/results/moveit_benchmarks/warehouse_ros.sqlite"
+        port: 0
+        scene_name: "single_box"
+      parameters:
+        name: "benchmark_single_box"
+        runs: 5
+        group: "ur_manipulator"
+        timeout: 10.0
+        output_directory: "/workspace/results/moveit_benchmarks/"
+        queries_regex: ".*"
+        start_states_regex: ".*"
+        goal_constraints_regex: ".*"
+      planning_pipelines:
+        pipelines: ["ompl"]
+        ompl:
+          name: "ompl"
+          planners:
+            - "RRTConnect"
+            - "RRT"
+            - "RRTstar"
+            - "PRM"
+            - "EST"

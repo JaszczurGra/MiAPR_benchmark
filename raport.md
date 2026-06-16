@@ -73,6 +73,10 @@ planowania. Dzięki temu „które planery” i „które stany” są wyłączn
 trzeba uruchamiać wszystkich algorytmów ani losowych zapytań.
 
 
+W trakcie konfiguracji napotkano i naprawiono bug w `warehouse_ros_sqlite` 1.0.5 — brakująca
+kolumna `M_planning_scene_id` w schemacie SQLite. Fix zastosowano w
+`ros2_ws/src/warehouse_ros_sqlite/`.
+
 Konfigurację wtyczki w RViz pokazuje poniższy zrzut — wybrana biblioteka planowania **OMPL**
 oraz aktywne połączenie z magazynem warehouse (Host/Port w sekcji *Warehouse* — stan
 *Connected* jest warunkiem zapisywania scen i stanów):
