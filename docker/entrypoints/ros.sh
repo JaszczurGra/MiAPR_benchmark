@@ -16,5 +16,6 @@ fi
 # Refresh ONLY the harness code from the (possibly host-mounted) source. --no-deps avoids
 # re-resolving the scientific stack (NumPy/etc.) under moveit_py; all deps are in the image.
 # Non-editable (`-e` needs setuptools>=64 / PEP 660, which the base lacks).
+mkdir -p /workspace/results/moveit_benchmarks
 pip install -q --no-deps --force-reinstall /workspace/benchmark || true
 exec "$@"
