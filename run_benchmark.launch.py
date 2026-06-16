@@ -23,9 +23,6 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
-    # MoveItCpp (used by BenchmarkExecutor) reads planning_pipelines.pipeline_names,
-    # but MoveItConfigsBuilder.to_dict() emits planning_pipelines as a flat list.
-    # Provide the nested form so MoveItCpp can discover and load the OMPL pipeline.
     moveit_cpp_pipeline_params = {
         "planning_pipelines": {
             "pipeline_names": ["ompl"],

@@ -361,7 +361,7 @@ kolizji (sekcja 7.3).
 | Decyzja | Domyślnie | Dlaczego |
 |---|---|---|
 | Dostarczanie | Docker (multi-service) | Arch nie ma binariów ROS 2; powtarzalność; izolacja GPU |
-| Dystrybucja ROS | Jazzy | Dojrzały MoveIt 2 + UR + benchmarki, **oraz** `moveit_py` jako binarka (`ros-jazzy-moveit-py`) — Humble nigdy jej nie wydał (moveit/moveit2#3454), co wymuszałoby budowę ze źródeł dla adaptera MoveIt |
+| Dystrybucja ROS | Jazzy | MoveIt 2 + UR + benchmarki, **oraz** `moveit_py` jako binarka (`ros-jazzy-moveit-py`) — Humble nigdy jej nie wydał (moveit/moveit2#3454), co wymuszałoby budowę ze źródeł dla adaptera MoveIt |
 | Robot | **ur5e wszędzie** | cuRobo dostarcza zwalidowany `ur5e.yml`; ręcznie robiony, nietestowalny config sfer ur5 byłby *cichym* błędem poprawności. ur5e należy do rodziny UR5. (Ścisły UR5 to udokumentowane rozszerzenie.) |
 | Symulacja | Mock hardware | Planowanie potrzebuje tylko sceny planistycznej, nie fizyki; deterministyczne i szybkie |
 | Interfejs MoveIt | `moveit_py` | In-process, dowolny pipeline/planer, zwraca pełną trajektorię; fallback MoveGroup udokumentowany |
