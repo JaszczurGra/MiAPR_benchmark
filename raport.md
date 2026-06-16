@@ -56,15 +56,12 @@ Celem pracy jest zbudowanie powtarzalnego stanowiska benchmarkowego, które:
 4. generuje wykresy porównawcze.
 
 Prace rozpoczęto od **ręcznych** testów wybranych algorytmów OMPL natywnym modułem MoveIt
-`moveit_ros_benchmarks` (zadanie 2 — sekcja 2). Następnie zbudowano automatyczny,
-międzyfreamworkowy harness (sekcje 3–8), opisany w dalszej części raportu, który obejmuje
+`moveit_ros_benchmarks`. Następnie zbudowano automatyczny,
+międzyfreamworkowy harness, opisany w dalszej części raportu, który obejmuje
 także planer cuRobo oraz baseline i liczy jednolite metryki.
 
----
 
 ## 2. Ręczne testy planerów w module `moveit_ros_benchmarks`
-
-
 
 ### 2.1. Przebieg ręcznego testu
 
@@ -75,31 +72,19 @@ dla dystrybucji Jazzy/Humble), skąd `moveit_run_benchmark` odczytuje gotowy pro
 planowania. Dzięki temu „które planery” i „które stany” są wyłącznie konfiguracją — nie
 trzeba uruchamiać wszystkich algorytmów ani losowych zapytań.
 
-Wykonany test:
-
-- **Scena:** `single_box` — jedna ścianka-przeszkoda przed robotem, zbudowana ręcznie w RViz
-  (zakładka *Scene Objects* → *Publish*) i zapisana do warehouse (*Stored Scenes* → *Save*).
-- **Stany start/cel:** jedna para zapisana jako nazwane stany (*Stored States*), tak aby
-  problem był ustalony, a nie losowy.
-- **Porównane planery (OMPL):** `RRTConnect`, `RRTstar`, `RRT`, `PRM` — celowo zestawiono
-  planery *feasible* (znajdujące dowolną ścieżkę szybko, np. RRTConnect) z planerem
-  **optymalizacyjnym** `RRTstar` (asymptotycznie optymalny — krótsza ścieżka kosztem czasu).
-  To najbardziej pouczający kontrast w nauczaniu.
-- **Parametry benchmarku** (`benchmark.yaml`): `runs: 3` (powtórzenia na parę planer×zapytanie),
-  `timeout: 10.0 s`, grupa `ur_manipulator`.
 
 Konfigurację wtyczki w RViz pokazuje poniższy zrzut — wybrana biblioteka planowania **OMPL**
 oraz aktywne połączenie z magazynem warehouse (Host/Port w sekcji *Warehouse* — stan
 *Connected* jest warunkiem zapisywania scen i stanów):
 
-![Konfiguracja wtyczki moveit_ros_benchmarks w RViz (MotionPlanning → Context: OMPL + warehouse)](results/report/moveit_ros_benchmarks/settingx.png)
+![Konfiguracja wtyczki moveit_ros_benchmarks w RViz (MotionPlanning -> Context: OMPL + warehouse)](results/report/moveit_ros_benchmarks/settingx.png)
 
 ### 2.2. Przykładowe wyniki
 
 Po uruchomieniu (`ros2 launch run_benchmark.launch.py`) moduł generuje pliki `.log`
 z czasem planowania, długością ścieżki i statusem sukcesu dla każdego przebiegu. Logi
 agreguje się skryptem `moveit_benchmark_statistics.py` do bazy `benchmark.db`, którą wczytuje
-**Planner Arena** (<https://plannerarena.org>) i rysuje wykresy porównawcze — po jednej serii
+**Planner Arena**  i rysuje wykresy porównawcze — po jednej serii
 na wybrany planer.
 
 Poniżej przykładowy wynik — *Overall performance* dla atrybutu **time** (czas planowania,
@@ -109,8 +94,8 @@ rozwiązują problem w kilkanaście–trzydzieści milisekund, a tabela poniżej
 
 ![Planner Arena — Overall performance, atrybut „time” (czas planowania) per planer](results/report/moveit_ros_benchmarks/graph_time.png)
 
-To potwierdza, że ręczny tor `moveit_ros_benchmarks` działa end-to-end: scena z RViz →
-warehouse → `moveit_run_benchmark` → logi → Planner Arena. Pełna, samodzielna instrukcja
+To potwierdza, że ręczny tor `moveit_ros_benchmarks` działa end-to-end: scena z RViz ->
+warehouse -> `moveit_run_benchmark` -> logi -> Planner Arena. Pełna, samodzielna instrukcja
 krok-po-kroku znajduje się w pliku `testowanie_wybranych_moveit_ros_benchmarks.md`.
 
 ---
@@ -148,35 +133,41 @@ Przetestowano **6 map**: `cluttered`, `empty`, `narrow_passage`, `shelf`, `singl
 | **shelf** | Dwupoziomowy regał przed robotem (półki + ścianki boczne). | Klasyczne wyzwanie sięgania „pick-from-shelf”. |
 | **table_pick** | Blat stołu przed robotem z obiektem do chwytania na górze. | Kanoniczny scenariusz manipulacji na stole (tabletop). |
 
-Wizualizacje wszystkich sześciu map (zrzuty z RViz po załadowaniu sceny) zestawiono poniżej —
-układ 3×2, podpisy odpowiadają nazwom map z tabeli powyżej:
 
-| ![cluttered](results/report/maps/cluttered.png) | ![empty](results/report/maps/empty.png) | ![narrow_passage](results/report/maps/narrow_passage.png) |
-|:---:|:---:|:---:|
-| **cluttered** | **empty** | **narrow_passage** |
-| ![shelf](results/report/maps/shelf.png) | ![single_box](results/report/maps/single_box.png) | ![table_pick](results/report/maps/table.png) |
-| **shelf** | **single_box** | **table_pick** |
+<table style="border: none;">
+<tr style="border: none;">
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/empty.png" alt="empty"></td>
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/cluttered.png" alt="cluttered"></td>
 
----
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/narrow_passage.png" alt="narrow_passage"></td>
+</tr>
+<tr style="border: none;">
+<td align="center" style="border: none;"><b>empty</b></td>
+<td align="center" style="border: none;"><b>cluttered</b></td>
+<td align="center" style="border: none;"><b>narrow_passage</b></td>
+</tr>
+<tr style="border: none;">
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/shelf.png" alt="shelf"></td>
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/single_box.png" alt="single_box"></td>
+<td align="center" style="border: none;"><img src="results/report/maps/cropped/table.png" alt="table_pick"></td>
+</tr>
+<tr style="border: none;">
+<td align="center" style="border: none;"><b>shelf</b></td>
+<td align="center" style="border: none;"><b>single_box</b></td>
+<td align="center" style="border: none;"><b>table_pick</b></td>
+</tr>
+</table>
+
 
 ## 5. Testowane planery
 
 Łącznie zestawiono **9 planerów** w trzech grupach (`config/planners.yaml`):
 
-**MoveIt (OMPL):**
-- `moveit:RRTConnect`
-- `moveit:RRT`
-- `moveit:RRTstar`
-- `moveit:PRM`
-- `moveit:BITstar`
-- `moveit:EST`
-- `moveit:KPIECE`
-
-**cuRobo:**
-- `curobo`
-
-**Baseline:**
-- `straightline`
+| Grupa | Planery |
+|---|---|
+| **MoveIt (OMPL)** | `moveit:RRTConnect` · `moveit:RRT` · `moveit:RRTstar` · `moveit:PRM` · `moveit:BITstar` · `moveit:EST` · `moveit:KPIECE` |
+| **cuRobo** | `curobo` |
+| **Baseline** | `straightline` |
 
 ### 5.1. straightline (linia odniesienia)
 
@@ -232,7 +223,7 @@ stąd jego czas planowania równy jest niemal dokładnie timeoutowi (10 s) na ws
 ### 7.1. Zasady sprawiedliwego porównania (Pipeline B)
 
 1. **Identyczne problemy.** Jedna biblioteka scenariuszy definiuje świat; jeden zaziarniony
-   generator tworzy bezkolizyjne zapytania start/cel. Ten sam seed → identyczne zapytania
+   generator tworzy bezkolizyjne zapytania start/cel. Ten sam seed -> identyczne zapytania
    dla każdego planera i obu potoków.
 2. **Naturalne cele, ten sam punkt docelowy.** Każde zapytanie przechowuje `goal_joint`
    *oraz* odpowiadającą mu pozę FK `goal_pose`. Planer w przestrzeni złączy (OMPL) używa
@@ -353,7 +344,7 @@ kolizji (sekcja 7.3).
 | Robot | **ur5e wszędzie** | cuRobo dostarcza zwalidowany `ur5e.yml`; ręcznie robiony, nietestowalny config sfer ur5 byłby *cichym* błędem poprawności. ur5e należy do rodziny UR5. (Ścisły UR5 to udokumentowane rozszerzenie.) |
 | Symulacja | Mock hardware | Planowanie potrzebuje tylko sceny planistycznej, nie fizyki; deterministyczne i szybkie |
 | Interfejs MoveIt | `moveit_py` | In-process, dowolny pipeline/planer, zwraca pełną trajektorię; fallback MoveGroup udokumentowany |
-| cuRobo | samodzielny `MotionGen` | Bez Isaac/ROS → czysty, izolowany adapter |
+| cuRobo | samodzielny `MotionGen` | Bez Isaac/ROS -> czysty, izolowany adapter |
 | Backend metryk | analityczna FK UR + kolizje sferowe (numpy) | Testowalne offline; jednolite dla wszystkich planerów |
 
 ---
@@ -371,7 +362,7 @@ downstream tak samo dla każdego planera (zasada fairness). Wzór:
 
 Kroki:
 1. Skopiuj `benchmark/mb_benchmark/adapters/template_adapter.py`
-   → `benchmark/mb_benchmark/adapters/<nazwa>_adapter.py`
+   -> `benchmark/mb_benchmark/adapters/<nazwa>_adapter.py`
 2. Zaimplementuj:
    - `setup(robot_name, obstacles)` — zbuduj planner ze sceny. Ciężkie importy (ROS/torch)
      **TYLKO tutaj**, nie na poziomie modułu (offline core musi importować się bez ROS/GPU).
@@ -382,7 +373,7 @@ Kroki:
    (planery sparametryzowane, jak `moveit:`, rejestruje się w pętli — patrz
    `moveit_adapter.py:303`).
 4. Dodaj import w `adapters/__init__.py`: `from . import <nazwa>_adapter`
-5. (opcjonalnie) dopisz nazwę do grupy w `config/planners.yaml` → `harness:` (np. pod
+5. (opcjonalnie) dopisz nazwę do grupy w `config/planners.yaml` -> `harness:` (np. pod
    `baselines:`), żeby leciała przez `@group` w `scripts/run_harness.sh`.
 
 Sprawdzenie:
@@ -397,13 +388,8 @@ granicy). Domyślnie ur5e / Jazzy / mock hardware.
 
 ### 10.2. Skąd biorą się runs / timeout / lista planerów
 
-Źródłem prawdy jest `config/planners.yaml` (czyta go `mb_benchmark/config.py`).
-Pierwszeństwo (od najwyższego): jawne `--runs/--timeout/--planners` > `config/planners.yaml`
-> wbudowany fallback (5 / 10.0).
+Źródłem prawdy jest `config/planners.yaml` 
 
-W `scripts/run_harness.sh`: env `RUNS=`/`TIMEOUT=` są przekazywane jako flagi tylko gdy
-ustawione, inaczej CLI czyta YAML. Listy planerów idą jako `@group`
-(`MOVEIT_PLANNERS=@moveit`, `CUROBO_PLANNERS=@curobo`) i są rozwijane z `harness:` w YAML.
 Nadpisanie na jedno uruchomienie:
 ```bash
 RUNS=10 TIMEOUT=10 bash scripts/run_harness.sh
