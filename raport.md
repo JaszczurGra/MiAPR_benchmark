@@ -64,47 +64,54 @@ także planer cuRobo oraz baseline i liczy jednolite metryki.
 
 ## 2. Ręczne testy planerów w module `moveit_ros_benchmarks`
 
-> Realizacja zadania 2: *Konfiguracja, uruchomienie i przetestowanie wybranych algorytmów za
-> pomocą modułu `moveit_ros_benchmarks`.* Był to pierwszy, wstępny krok prac.
->
-> Jest to **osobny**, ręczny tor: natywny benchmark MoveIt uruchamiany na scenie zbudowanej
-> graficznie w RViz, niezależny od automatycznego, międzyfreamworkowego harnessa opisanego
-> w dalszej części raportu (sekcje 3–8).
->
-> Szczegółowa, samodzielna instrukcja krok-po-kroku (budowa sceny w RViz → zapis do warehouse
-> SQLite → `benchmark.yaml` → `moveit_run_benchmark` → odczyt logów / Planner Arena) znajduje
-> się w pliku **`testowanie_wybranych_moveit_ros_benchmarks.md`**.
->
-> Materiały źródłowe (tutorial MoveIt):
-> - <https://moveit.picknik.ai/humble/doc/examples/benchmarking/benchmarking_tutorial.html>
-> - <https://moveit.picknik.ai/main/doc/examples/benchmarking/benchmarking_tutorial.html>
 
-<!-- ============================================================================
-TODO [KACPER] — RĘCZNE TESTOWANIE moveit_ros_benchmarks
-Opisać tutaj faktycznie wykonane ręczne testy, np.:
-  - którą scenę zbudowano w RViz (np. single_box) i jakie stany start/goal zapisano,
-  - które planery wybrano do porównania (sugerowane: jeden feasible vs jeden optymalizujący,
-    np. RRTConnect vs RRTstar/BITstar; ewentualnie RRTConnect, RRT, RRTstar, BITstar, PRM),
-  - parametry benchmarku (runs, timeout) z benchmark.yaml,
-  - wynik: zrzut logów .log lub krótkie podsumowanie liczbowe.
 
-Wykresy: dołączyć wykresy generowane przez sam MoveIt (Planner Arena z benchmark.db) —
-NIE muszą to być te same mapy co w sekcji 8, chodzi o pokazanie, że narzędzie działa.
-Wstawić obrazki w formacie:
-  ![moveit benchmark - planning time](TODO/sciezka/planner_arena_time.png)
-  ![moveit benchmark - path length](TODO/sciezka/planner_arena_length.png)
+### 2.1. Przebieg ręcznego testu
 
-ALTERNATYWNIE (wariant minimalny, wg notatki — i tak akceptowalny):
-  - uruchomić te same scenariusze przez harness: BUILD + `bash scripts/run_harness.sh`,
-    przerwać po pierwszym kroku (generacja) — w scenarios/generated/ znajdą się dokładnie
-    te ścieżki, których użyto do późniejszych planowań — i dołączyć powstałe wykresy jako
-    porównanie. Wystarczy też wariant „odpalone, ale bez grafów”.
+Moduł `moveit_ros_benchmarks` jest natywną wtyczką MoveIt 2, sterowaną w całości z panelu
+**MotionPlanning** w RViz. Scenę testową (przeszkody oraz pary stanów start/cel) buduje się
+graficznie i zapisuje do magazynu **warehouse** (backend SQLite — Mongo nie jest pakowany
+dla dystrybucji Jazzy/Humble), skąd `moveit_run_benchmark` odczytuje gotowy problem
+planowania. Dzięki temu „które planery” i „które stany” są wyłącznie konfiguracją — nie
+trzeba uruchamiać wszystkich algorytmów ani losowych zapytań.
 
-Pełna procedura: patrz testowanie_wybranych_moveit_ros_benchmarks.md
-============================================================================ -->
+Wykonany test:
 
-> **[TODO — wyniki ręcznego benchmarku `moveit_ros_benchmarks`]** *Tu wstawić opis wykonanych
-> testów oraz wykresy/logi generowane przez MoveIt.*
+- **Scena:** `single_box` — jedna ścianka-przeszkoda przed robotem, zbudowana ręcznie w RViz
+  (zakładka *Scene Objects* → *Publish*) i zapisana do warehouse (*Stored Scenes* → *Save*).
+- **Stany start/cel:** jedna para zapisana jako nazwane stany (*Stored States*), tak aby
+  problem był ustalony, a nie losowy.
+- **Porównane planery (OMPL):** `RRTConnect`, `RRTstar`, `RRT`, `PRM` — celowo zestawiono
+  planery *feasible* (znajdujące dowolną ścieżkę szybko, np. RRTConnect) z planerem
+  **optymalizacyjnym** `RRTstar` (asymptotycznie optymalny — krótsza ścieżka kosztem czasu).
+  To najbardziej pouczający kontrast w nauczaniu.
+- **Parametry benchmarku** (`benchmark.yaml`): `runs: 3` (powtórzenia na parę planer×zapytanie),
+  `timeout: 10.0 s`, grupa `ur_manipulator`.
+
+Konfigurację wtyczki w RViz pokazuje poniższy zrzut — wybrana biblioteka planowania **OMPL**
+oraz aktywne połączenie z magazynem warehouse (Host/Port w sekcji *Warehouse* — stan
+*Connected* jest warunkiem zapisywania scen i stanów):
+
+![Konfiguracja wtyczki moveit_ros_benchmarks w RViz (MotionPlanning → Context: OMPL + warehouse)](results/report/moveit_ros_benchmarks/settingx.png)
+
+### 2.2. Przykładowe wyniki
+
+Po uruchomieniu (`ros2 launch run_benchmark.launch.py`) moduł generuje pliki `.log`
+z czasem planowania, długością ścieżki i statusem sukcesu dla każdego przebiegu. Logi
+agreguje się skryptem `moveit_benchmark_statistics.py` do bazy `benchmark.db`, którą wczytuje
+**Planner Arena** (<https://plannerarena.org>) i rysuje wykresy porównawcze — po jednej serii
+na wybrany planer.
+
+Poniżej przykładowy wynik — *Overall performance* dla atrybutu **time** (czas planowania,
+box-plot per planer). Widać oczekiwany rozkład: planery feasible (RRTConnect, RRT, PRM)
+rozwiązują problem w kilkanaście–trzydzieści milisekund, a tabela poniżej wykresu potwierdza
+**0 brakujących przebiegów** (komplet rozwiązań) dla wszystkich czterech planerów:
+
+![Planner Arena — Overall performance, atrybut „time” (czas planowania) per planer](results/report/moveit_ros_benchmarks/graph_time.png)
+
+To potwierdza, że ręczny tor `moveit_ros_benchmarks` działa end-to-end: scena z RViz →
+warehouse → `moveit_run_benchmark` → logi → Planner Arena. Pełna, samodzielna instrukcja
+krok-po-kroku znajduje się w pliku `testowanie_wybranych_moveit_ros_benchmarks.md`.
 
 ---
 
@@ -141,22 +148,14 @@ Przetestowano **6 map**: `cluttered`, `empty`, `narrow_passage`, `shelf`, `singl
 | **shelf** | Dwupoziomowy regał przed robotem (półki + ścianki boczne). | Klasyczne wyzwanie sięgania „pick-from-shelf”. |
 | **table_pick** | Blat stołu przed robotem z obiektem do chwytania na górze. | Kanoniczny scenariusz manipulacji na stole (tabletop). |
 
-<!-- ============================================================================
-TODO [KACPER] — ZRZUTY/WIZUALIZACJE MAP
-Dodać obrazki pokazujące jak wyglądają poszczególne mapy (najlepiej zrzuty z RViz po
-załadowaniu sceny z pliku YAML — scenarios/library/ lub scenarios/generated/).
-Mapa `empty` nie wymaga zrzutu (brak przeszkód). Pozostałe do zilustrowania:
-cluttered, narrow_passage, shelf, single_box, table_pick.
-Wstawić poniżej w formacie:
-  ![cluttered](TODO/sciezka/cluttered.png)
-  ![narrow_passage](TODO/sciezka/narrow_passage.png)
-  ![shelf](TODO/sciezka/shelf.png)
-  ![single_box](TODO/sciezka/single_box.png)
-  ![table_pick](TODO/sciezka/table_pick.png)
-Jeśli nie da się wyrenderować z YAML — alternatywnie opisać słownie wygląd każdej mapy.
-============================================================================ -->
+Wizualizacje wszystkich sześciu map (zrzuty z RViz po załadowaniu sceny) zestawiono poniżej —
+układ 3×2, podpisy odpowiadają nazwom map z tabeli powyżej:
 
-> **[TODO — obrazki map]** *Tu wstawić wizualizacje map.*
+| ![cluttered](results/report/maps/cluttered.png) | ![empty](results/report/maps/empty.png) | ![narrow_passage](results/report/maps/narrow_passage.png) |
+|:---:|:---:|:---:|
+| **cluttered** | **empty** | **narrow_passage** |
+| ![shelf](results/report/maps/shelf.png) | ![single_box](results/report/maps/single_box.png) | ![table_pick](results/report/maps/table.png) |
+| **shelf** | **single_box** | **table_pick** |
 
 ---
 
